@@ -1,6 +1,7 @@
 import "./App.css";
 import * as React from "react";
 import axios from 'axios';
+import sortBy from 'lodash/sortBy';
 
 const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query=';
 
@@ -115,13 +116,44 @@ const useStorageState = (key, initialState) => {
   return [value, setValue];
 };
 
-const List = ({ list, onRemoveItem }) => (
+const SORTS = {
+  NONE: list => list,
+  TITLE: list => sortBy(list, 'title'),
+  AUTHOR: list => sortBy(list, 'author'),
+  COMMENTS: list => sortBy(list, 'num_comments'),
+  POINTS: list => sortBy(list, 'points'),
+}
+
+
+
+const List = ({ list, onRemoveItem }) => {
+  
+  const [sort, setSort] = React.useState('NONE');
+  const sortFunction = SORTS[sort];
+  const sortedList = sortFunction(list);
+
+  const handleSort = (event) => {
+    setSort(event.target.value);
+  }
+
+  return (
+    <>
+    <label htmlFor="sort">Sort by:</label>
+    <select id="sort" onChange={handleSort} value={sort}>
+      <option value="NONE">None</option>
+      <option value="TITLE">Title</option>
+      <option value="AUTHOR">Author</option>
+      <option value="COMMENTS">Comments</option>
+      <option value="POINTS">Points</option>
+      </select>
   <ul>
-    {list.map((item) => (
+    {sortedList.map((item) => (
       <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />
     ))}
   </ul>
-);
+  </>
+  );
+};
 
 const Item = ({ item, onRemoveItem }) => (
   <li>
@@ -157,5 +189,7 @@ const InputWithLabel = ({
     <input id={id} type={type} value={value} onChange={onInputChange}></input>
   </>
 );
+
+
 
 export default App;
