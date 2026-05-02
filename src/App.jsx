@@ -5,19 +5,27 @@ import sortBy from 'lodash/sortBy';
 
 const API_ENDPOINT = 'https://hn.algolia.com/api/v1/search?query=';
 
+const getLastSearches = (urls) =>
+  urls
+    .slice(-5)
+    .map((url) => url.replace(API_ENDPOINT, ''));
+
 
 
 function App() {
   const [searchTerm, setSearchTerm] = useStorageState("search", "React");
   const [stories, dispatch] = React.useReducer(storiesReducer, { data: [], isLoading: false, isError: false });
-  const [url, setUrl] = React.useState(`${API_ENDPOINT}${searchTerm}`);
+  const [urls, setUrls] = React.useState([
+    `${API_ENDPOINT}${searchTerm}`,
+  ]);
 
 
   const handleFetchStories = React.useCallback(async () => {
     dispatch({ type: 'STORIES_FETCH_INIT' });
   
     try {
-    const result = await axios.get(url);
+    const lastUrl = urls[urls.length - 1];
+    const result = await axios.get(lastUrl);
 
     dispatch({
       type: 'STORIES_FETCH_SUCCESS',
@@ -26,7 +34,7 @@ function App() {
   } catch {
       dispatch({ type: 'STORIES_FETCH_FAILURE' });
     }
-  }, [url]);
+  }, [urls]);
 
   React.useEffect(() => {
     handleFetchStories();
@@ -45,19 +53,44 @@ function App() {
   };
 
   const searchAction = () => {
-    setUrl(`${API_ENDPOINT}${searchTerm}`);
+    const url = `${API_ENDPOINT}${searchTerm}`;
+    setUrls((currentUrls) => currentUrls.concat(url));
   }
+
+  const handleLastSearch = (searchTerm) => {
+    setSearchTerm(searchTerm);
+    setUrls((currentUrls) =>
+      currentUrls.concat(`${API_ENDPOINT}${searchTerm}`)
+    );
+  };
+
+  const lastSearches = getLastSearches(urls);
   
   return (
     <>
       <h1>My Hacker Stories</h1>
       <SearchForm searchTerm={searchTerm} onSearchInput={handleSearchInput} searchAction={searchAction} />
+      <LastSearches lastSearches={lastSearches} onLastSearch={handleLastSearch} />
       <hr />
       {stories.isError && <p>Something went wrong...</p>}
       {stories.isLoading ? <p>Loading...</p> : <List list={stories.data} onRemoveItem={handleRemoveStory} />}
     </>
   );
 }
+
+const LastSearches = ({ lastSearches, onLastSearch }) => (
+  <>
+    {lastSearches.map((searchTerm, index) => (
+      <button
+        key={`${searchTerm}-${index}`}
+        type="button"
+        onClick={() => onLastSearch(searchTerm)}
+      >
+        {searchTerm}
+      </button>
+    ))}
+  </>
+);
 
 const SearchForm = ({
   searchTerm,
@@ -128,42 +161,57 @@ const SORTS = {
 
 const List = ({ list, onRemoveItem }) => {
   
-  const [sort, setSort] = React.useState('NONE');
-  const sortFunction = SORTS[sort];
-  const sortedList = sortFunction(list);
+  const [sort, setSort] = React.useState({ sortKey: 'NONE', isReversed: false });
+  const sortFunction = SORTS[sort.sortKey];
+  const sortedList = sort.isReversed ? [...sortFunction(list)].reverse() : sortFunction(list);
 
-  const handleSort = (event) => {
-    setSort(event.target.value);
+  const handleSort = (sortKey) => {
+    const isReversed = sort.sortKey === sortKey && !sort.isReversed;
+    setSort({ sortKey, isReversed });
   }
 
   return (
-    <>
-    <label htmlFor="sort">Sort by:</label>
-    <select id="sort" onChange={handleSort} value={sort}>
-      <option value="NONE">None</option>
-      <option value="TITLE">Title</option>
-      <option value="AUTHOR">Author</option>
-      <option value="COMMENTS">Comments</option>
-      <option value="POINTS">Points</option>
-      </select>
-  <ul>
-    {sortedList.map((item) => (
-      <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />
-    ))}
-  </ul>
-  </>
+    <ul>
+      <li style={{ display: 'flex' }}>
+        <span style={{ width: '40%' }}>
+          <button type="button" onClick={() => handleSort('TITLE')}>
+            Title
+          </button>
+        </span>
+        <span style={{ width: '30%' }}>
+          <button type="button" onClick={() => handleSort('AUTHOR')}>
+            Author
+          </button>
+        </span>
+        <span style={{ width: '10%' }}>
+          <button type="button" onClick={() => handleSort('COMMENTS')}>
+            Comments
+          </button>
+        </span>
+        <span style={{ width: '10%' }}>
+          <button type="button" onClick={() => handleSort('POINTS')}>
+            Points
+          </button>
+        </span>
+        <span style={{ width: '10%' }}>Actions</span>
+      </li>
+
+      {sortedList.map((item) => (
+        <Item key={item.objectID} item={item} onRemoveItem={onRemoveItem} />
+      ))}
+    </ul>
   );
 };
 
 const Item = ({ item, onRemoveItem }) => (
-  <li>
-    <span>
-      <a>{item.title}</a>
+  <li style={{ display: 'flex' }}>
+    <span style={{ width: '40%' }}>
+      <a href={item.url}>{item.title}</a>
     </span>
-    <span>{item.author}</span>
-    <span>{item.num_comments}</span>
-    <span>{item.points}</span>
-    <span>
+    <span style={{ width: '30%' }}>{item.author}</span>
+    <span style={{ width: '10%' }}>{item.num_comments}</span>
+    <span style={{ width: '10%' }}>{item.points}</span>
+    <span style={{ width: '10%' }}>
       <button
         type="button"
         onClick={() => {

@@ -11,17 +11,18 @@ This repository documents my learning journey through *The Road to React*. It co
 - Async data fetching: `fetch`, `axios`, `async/await`, and server-side search through the Hacker News API.
 - Forms and modern JavaScript: form submission, destructuring, spread syntax, and `try/catch`.
 - List sorting: local UI state, derived sorted lists, controlled `<select>` elements, and `lodash` sorting helpers.
+- Advanced state patterns: reverse sorting, search URL history, immutable array updates, and reusable search handlers.
 
 ## Current App
 
-The app lets users search Hacker News stories, fetch matching results from the Algolia Hacker News API, show loading and error states, sort the result list, and dismiss stories from the list.
+The app lets users search Hacker News stories, fetch matching results from the Algolia Hacker News API, show loading and error states, sort and reverse-sort the result list, revisit recent searches, and dismiss stories from the list.
 
 ## Latest Progress
 
-- Added sorting options for title, author, number of comments, and points.
-- Used a `SORTS` configuration object to connect sort keys with sorting behavior.
-- Rendered sorting options from object keys instead of hardcoding every dropdown option.
-- Practiced separating local UI state from fetched server data.
+- Upgraded sorting state from a simple key to an object that remembers the active sort key and reverse direction.
+- Added recent search history by storing requested URLs and deriving the latest search terms from them.
+- Practiced immutable array operations with `concat`, `slice`, `map`, and `reverse`.
+- Extracted reusable search behavior so form submission and history buttons share the same flow.
 
 ## Getting Started
 
@@ -40,7 +41,7 @@ npm run lint
 
 ## Next Learning Goals
 
+- Paginated fetching with a "Load More" flow
 - Styling in React
-- React project maintenance
 - Testing and TypeScript
-- More real-world React patterns, such as search history and pagination
+- More real-world React project maintenance patterns
